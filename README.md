@@ -76,6 +76,8 @@ Hover the **i** under each number or chart for the formula.
 
 **Study guide (screenshots + formulas):** [`docs/UrbanCart_Olist_Dashboard_Study_Guide.pdf`](docs/UrbanCart_Olist_Dashboard_Study_Guide.pdf) — rebuild with Streamlit up via `python docs/build_study_pdf.py`.
 
+**Project report (team + work done + dashboard shots):** [`docs/UrbanCart_Olist_Project_Report.pdf`](docs/UrbanCart_Olist_Project_Report.pdf) — `python docs/build_project_report.py`.
+
 ## Run locally
 
 ```bash
