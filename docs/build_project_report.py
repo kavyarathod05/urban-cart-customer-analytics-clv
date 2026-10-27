@@ -40,7 +40,6 @@ CANVAS = colors.HexColor("#F7F3EC")
 CLAY = colors.HexColor("#B8573E")
 
 TEAM = [
-    ("Akash Tripathi", "2023IMG005"),
     ("Tushar Jawale", "2023IMG025"),
     ("Kavya Rathod", "2023IMG042"),
     ("Tarun Rai", "2023IMG049"),
@@ -651,7 +650,7 @@ def build() -> Path:
         topMargin=16 * mm,
         bottomMargin=18 * mm,
         title="UrbanCart Olist — Project Report",
-        author="Akash Tripathi · Tushar Jawale · Kavya Rathod · Tarun Rai · Tushar Tiwari",
+        author="Tushar Jawale · Kavya Rathod · Tarun Rai · Tushar Tiwari",
     )
     doc.build(story, onFirstPage=cover_footer, onLaterPages=footer_fn)
     return OUT_PDF
