@@ -74,6 +74,8 @@ Hover the **i** under each number or chart for the formula.
 4. **Cohorts** — repeat rate, retention heatmap, cohort size, revenue by months since first order  
 5. **Product** — category treemap, top SKUs, units vs revenue, share over time, category and product rules  
 
+**Study guide (screenshots + formulas):** [`docs/UrbanCart_Olist_Dashboard_Study_Guide.pdf`](docs/UrbanCart_Olist_Dashboard_Study_Guide.pdf) — rebuild with Streamlit up via `python docs/build_study_pdf.py`.
+
 ## Run locally
 
 ```bash
