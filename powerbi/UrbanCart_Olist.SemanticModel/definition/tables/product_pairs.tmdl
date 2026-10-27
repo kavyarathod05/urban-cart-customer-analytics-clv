@@ -1,0 +1,70 @@
+table product_pairs
+	lineageTag: product_pairs-table
+
+	column product_a
+		dataType: string
+		summarizeBy: none
+		sourceColumn: product_a
+
+	column category_a
+		dataType: string
+		summarizeBy: none
+		sourceColumn: category_a
+
+	column product_b
+		dataType: string
+		summarizeBy: none
+		sourceColumn: product_b
+
+	column category_b
+		dataType: string
+		summarizeBy: none
+		sourceColumn: category_b
+
+	column pair_orders
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: pair_orders
+
+	column support
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: support
+
+	column confidence_a_to_b
+		dataType: double
+		summarizeBy: none
+		sourceColumn: confidence_a_to_b
+
+	column confidence_b_to_a
+		dataType: double
+		summarizeBy: none
+		sourceColumn: confidence_b_to_a
+
+	column lift
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: lift
+
+	partition product_pairs = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(#"Data Folder" & "/product_pairs.csv"),
+					[Delimiter = ",", Columns = 9, Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				#"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				#"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {
+					{"product_a", Text.Type},
+				{"category_a", Text.Type},
+				{"product_b", Text.Type},
+				{"category_b", Text.Type},
+				{"pair_orders", Int64.Type},
+				{"support", Number.Type},
+				{"confidence_a_to_b", Number.Type},
+				{"confidence_b_to_a", Number.Type},
+				{"lift", Number.Type}
+				})
+			in
+				#"Changed Type"

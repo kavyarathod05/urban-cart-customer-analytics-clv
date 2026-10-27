@@ -1,108 +1,48 @@
-CREATE TABLE dim_customers (
-    customer_id INT PRIMARY KEY,
-    signup_date DATE,
-    gender TEXT,
-	city TEXT,
-	age INT
-);
+-- UrbanCart star schema (Olist)
+-- Built by setup_local.py. This file is the readable reference.
 
-CREATE TABLE dim_products (
-    product_id INT PRIMARY KEY,
-    category TEXT,
-    price NUMERIC,
-    cost NUMERIC
-);
+-- dim_customers: one row per person (Olist customer_unique_id)
+--   customer_id, signup_date, city, state
+-- dim_products: product_id, category (English), price (median line price)
+-- dim_date: one row per order_date
+-- orders_fact: one row per (order_id, product_id)
+--   amount = price + freight; no campaign_id / channel / cost / gender / age
 
-
-
-CREATE TABLE dim_campaigns (
-    campaign_id INT PRIMARY KEY,
-    channel TEXT,
-    spend NUMERIC,
-    period DATE
-);
-
-CREATE TABLE dim_date (
-    date_id DATE PRIMARY KEY,
-    year INT,
-    month INT,
-    day INT,
-    quarter INT
-);
-
-CREATE TABLE ORDERS_FACT (
-    ORDER_ID INT PRIMARY KEY,
-    CUSTOMER_ID INT,
-    PRODUCT_ID INT,
-    CAMPAIGN_ID INT,
-    ORDER_DATE DATE,
-    QUANTITY INT,
-	CHANNEL VARCHAR,
-    PRICE INT,
-    AMOUNT INT
-);
-
-
-INSERT INTO dim_customers
-SELECT DISTINCT customer_id, signup_date, gender, city, age
+CREATE TABLE dim_customers AS
+SELECT DISTINCT customer_id, signup_date::date AS signup_date, city, state
 FROM customers;
 
-INSERT INTO dim_products
-SELECT DISTINCT product_id, category, price, cost
-FROM products;
+CREATE TABLE dim_products AS
+SELECT DISTINCT product_id, category, price FROM products;
 
-INSERT INTO dim_campaigns
-SELECT DISTINCT campaign_id, channel, spend, period
-FROM marketing_campaigns;
-
-INSERT INTO orders_fact (
-    order_id,
-    customer_id,
-    product_id,
-    order_date,
-    quantity,
-    channel,
-    price,
-    amount,
-    campaign_id
-)
-SELECT 
-    order_id,
-    customer_id,
-    product_id,
-    order_date::DATE,
-    quantity,
-    channel,
-    price,
-    amount,
-    campaign_id
-FROM orders;
-
-INSERT INTO dim_date (date_id, year, month, day, quarter)
+CREATE TABLE dim_date AS
 SELECT DISTINCT
-    order_date,
-    EXTRACT(YEAR FROM order_date),
-    EXTRACT(MONTH FROM order_date),
-    EXTRACT(DAY FROM order_date),
-    EXTRACT(QUARTER FROM order_date)
+    order_date::date AS date_id,
+    EXTRACT(YEAR FROM order_date::date)::int AS year,
+    EXTRACT(MONTH FROM order_date::date)::int AS month,
+    EXTRACT(DAY FROM order_date::date)::int AS day,
+    EXTRACT(QUARTER FROM order_date::date)::int AS quarter,
+    DATE_TRUNC('month', order_date::date)::date AS month_start
 FROM orders;
 
+CREATE TABLE orders_fact AS
+SELECT
+    order_line_id,
+    order_id,
+    customer_id,
+    product_id,
+    order_date::date AS order_date,
+    quantity,
+    price,
+    freight,
+    amount,
+    payment_type,
+    order_status
+FROM orders;
 
-select * from dim_customers;
-select * from dim_products;
-select * from dim_campaigns;
-select * from orders_fact;
-select * from dim_date;
-
----verify star schema 
-SELECT 
-    f.order_id,
-    c.customer_id,
-    p.product_id,
-    d.year,
-    f.amount
-FROM orders_fact f
-JOIN dim_customers c ON f.customer_id = c.customer_id
-JOIN dim_products p ON f.product_id = p.product_id
-JOIN dim_date d ON f.order_date = d.date_id
-LIMIT 10;
+-- Recency clock for this extract (not wall-clock today)
+CREATE TABLE analysis_params AS
+SELECT MAX(order_date) AS analysis_date,
+       MIN(order_date) AS first_date,
+       COUNT(DISTINCT order_id) AS total_orders
+FROM orders_fact;

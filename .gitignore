@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.streamlit/secrets.toml
+powerbi/data/*.csv
+powerbi/data/README.txt
+powerbi/**/.pbi/localSettings.json
+powerbi/**/.pbi/cache.abf

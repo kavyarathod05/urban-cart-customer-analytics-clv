@@ -1,82 +1,30 @@
----1.Indentify Incrematal column
----order_date
+-- Incremental load on order_date. Grain is order_line_id (not order_id).
 
----2.create tracking table
-CREATE TABLE load_tracker (
+CREATE TABLE IF NOT EXISTS load_tracker (
     table_name TEXT PRIMARY KEY,
     last_load_date DATE
 );
 
----3.add intial value
-SELECT MIN(order_date) FROM orders;
+INSERT INTO load_tracker VALUES ('orders', '2016-01-01')
+ON CONFLICT (table_name) DO NOTHING;
 
-INSERT INTO load_tracker VALUES ('orders', '2022-01-01');
-
----4.load only new data
 INSERT INTO orders_fact (
-    order_id,
-    customer_id,
-    product_id,
-    order_date,
-    quantity,
-    channel,
-    price,
-    amount,
-    campaign_id
+    order_line_id, order_id, customer_id, product_id,
+    order_date, quantity, price, freight, amount, payment_type, order_status
 )
-SELECT 
-    order_id,
-    customer_id,
-    product_id,
-    order_date,
-    quantity,
-    channel,
-    price,
-    amount,
-    campaign_id
-FROM orders
-WHERE order_date > (
-    SELECT last_load_date 
-    FROM load_tracker 
-    WHERE table_name = 'orders'
-);
-
----Update tracker
-UPDATE load_tracker
-SET last_load_date = (SELECT MAX(order_date) FROM orders)
-WHERE table_name = 'orders';
-
-
----Handle Duplicates
-INSERT INTO orders_fact (
-    order_id,
-    customer_id,
-    product_id,
-    order_date,
-    quantity,
-    channel,
-    price,
-    amount,
-    campaign_id
-)
-SELECT 
-    order_id,
-    customer_id,
-    product_id,
-    order_date,
-    quantity,
-    channel,
-    price,
-    amount,
-    campaign_id
+SELECT
+    order_line_id, order_id, customer_id, product_id,
+    order_date, quantity, price, freight, amount, payment_type, order_status
 FROM orders
 WHERE order_date > (
     SELECT last_load_date FROM load_tracker WHERE table_name = 'orders'
 )
-ON CONFLICT (order_id)
+ON CONFLICT (order_line_id)
 DO UPDATE SET
     quantity = EXCLUDED.quantity,
-    amount = EXCLUDED.amount;
+    amount   = EXCLUDED.amount,
+    freight  = EXCLUDED.freight;
 
-	
-
+UPDATE load_tracker
+SET last_load_date = (SELECT MAX(order_date) FROM orders)
+WHERE table_name = 'orders';

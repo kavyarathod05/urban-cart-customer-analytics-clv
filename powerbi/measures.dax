@@ -1,0 +1,96 @@
+-- UrbanCart · Olist — DAX measures for Power BI
+-- Put these on a Measures table (or on orders_fact).
+-- Analysis date comes from analysis_params[analysis_date] (last order in extract).
+
+-- ========== Executive ==========
+
+Gross GMV =
+SUM ( orders_fact[amount] )
+
+Orders =
+DISTINCTCOUNT ( orders_fact[order_id] )
+
+Buyers =
+DISTINCTCOUNT ( orders_fact[customer_id] )
+
+AOV =
+DIVIDE ( [Gross GMV], [Orders] )
+
+Avg CLV =
+AVERAGE ( clv_table[clv] )
+
+High Risk Buyers =
+CALCULATE (
+    DISTINCTCOUNT ( pbi_churn_risk[customer_id] ),
+    pbi_churn_risk[churn_segment] = "High Risk"
+)
+
+Churn Rate =
+DIVIDE (
+    [High Risk Buyers],
+    DISTINCTCOUNT ( pbi_churn_risk[customer_id] )
+)
+
+Repeat Buyers =
+CALCULATE (
+    DISTINCTCOUNT ( customer_metrics[customer_id] ),
+    customer_metrics[total_orders] >= 2
+)
+
+Repeat Rate =
+DIVIDE (
+    [Repeat Buyers],
+    DISTINCTCOUNT ( customer_metrics[customer_id] )
+)
+
+-- ========== RFM ==========
+
+RFM Customers =
+COUNTROWS ( rfm_segmentation )
+
+RFM Monetary =
+SUM ( rfm_segmentation[monetary] )
+
+Avg Recency Days =
+AVERAGE ( rfm_segmentation[recency] )
+
+Avg Frequency =
+AVERAGE ( rfm_segmentation[frequency] )
+
+-- ========== Churn ==========
+
+Revenue At Risk =
+CALCULATE (
+    SUM ( pbi_churn_risk[total_spent] ),
+    pbi_churn_risk[churn_segment] = "High Risk"
+)
+
+Avg Days Inactive =
+AVERAGE ( pbi_churn_risk[days_inactive] )
+
+-- ========== Cohorts ==========
+-- Prefer the pre-aggregated cohort_retention table for the heatmap.
+-- retention_rate is already a fraction (0–1); format as %.
+
+Cohort Size =
+MAX ( cohort_retention[cohort_size] )
+
+Retained Customers =
+SUM ( cohort_retention[retained_customers] )
+
+Retention % =
+AVERAGE ( cohort_retention[retention_rate] )
+
+-- ========== Product ==========
+
+Category Revenue =
+SUM ( pbi_category_performance[revenue] )
+
+Category Units =
+SUM ( pbi_category_performance[units] )
+
+Avg Lift =
+AVERAGE ( category_pairs[lift] )
+
+Pair Orders =
+SUM ( category_pairs[pair_orders] )

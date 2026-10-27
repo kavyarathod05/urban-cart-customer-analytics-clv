@@ -1,267 +1,104 @@
-## 🛒 UrbanCart: E-commerce Analytics & CLV Optimization
-
-## Project Title : Omni-channel Customer Analytics & Revenue Optimization for "UrbanCart" E-commerce.
-
-## 📌 Project Overview
-UrbanCart is a mid-sized e-commerce retailer experiencing 25% YoY growth but facing declining customer retention (from 45% to 32% over 3 years). 
-They need a comprehensive analytics solution to understand customer behavior across web, mobile app, and physical stores.
-The objective of this project is to build a comprehensive analytics solution to:
-•	Identify at-risk customers
-•	Improve marketing ROI
-•	Increase Customer Lifetime Value (CLV) by 15%
-•	Enable data-driven decision-making
-The solution integrates structured and semi-structured data, builds a scalable data warehouse, applies predictive analytics models, and develops executive dashboards for strategic decision-making.
-Technologies used:
-•	Database – PostgreSQL , MongoDB
-•	Programming - Python (ETL & Analytics)
-•	Data Warehouse - PostgreSql
-•	Visualization - Microsoft Power BI
-
-
-## 🎯 Business Problem
-UrbanCart faces the following challenges:
-•	Declining retention rate
-•	Increasing customer acquisition cost
-•	Inefficient marketing spend allocation
-•	Lack of unified customer analytics system
-The business requires a data-driven framework to understand customer behavior and improve long-term revenue growth.
-
-## 🛠️ Tech Stack
-Database: PostgreSQL, MongoDB
-ETL Pipeline: Python (Pandas)
-Data Warehouse: PostgreSQL (Star Schema)
-Analytics: SQL + Python
-Visualization: Power BI
-
-## ⚙️ Project Architecture
-Data Sources → ETL Pipeline → Data Warehouse → Analytics → Dashboard
-(PostgreSQL + MongoDB) → (Python) → (PostgreSQL) → (SQL/Python) → (Power BI)
+# UrbanCart — Customer Analytics & CLV
 
-## 📊 Dataset
-5,000 Customers
-25,000 Orders
-500 Products
-30,000 Web Sessions
-50 Marketing Campaigns
+Omni-channel was the original brief. The live system is a **purchase analytics warehouse** on real Brazilian marketplace orders: RFM, historic CLV, inactivity churn, cohort retention, and market-basket rules.
 
-## 🔄 ETL Pipeline
-Extract data from PostgreSQL & MongoDB
-Clean & transform data using Python
-Handle missing values & duplicates
-Load into PostgreSQL Data Warehouse
-Incremental data loading
+Source: [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (CC BY-NC-SA 4.0), Sep 2016 – Sep 2018.
 
-## 🧱 Data Warehouse Design
-Fact Table: fact_orders
-Dimension Tables:
-dim_customers
-dim_products
-dim_date
-dim_campaign
+## What is in the data
 
-## 📈 Analytics Performed
+| Table | Grain | Notes |
+|---|---|---|
+| customers | person | `customer_unique_id` (not Olist’s per-order `customer_id`), city, state, signup = first order |
+| products | SKU | English category, median line price |
+| orders | order × product | quantity, price, freight, amount = price + freight, payment type |
 
-## 🔹 RFM Segmentation
-RFM Analysis is a customer segmentation technique used in marketing and analytics to identify valuable customers based on purchasing behavior.
-Customer segmentation is a data analysis technique used to divide customers into meaningful groups based on their purchasing behavior.
-In this project, RFM analysis (Recency, Frequency, Monetary) is used to identify high-value customers, loyal customers, and customers at risk of churn. 
-RFM analysis helps businesses understand customer engagement and purchasing patterns, enabling more effective marketing strategies and personalized campaigns
+Canceled / unavailable orders are excluded. There is **no** campaign spend, web log, gender, age, or product cost in Olist, so those objects are not in the warehouse or the dashboards.
 
-## 🔹 Customer Lifetime Value (CLV)
-Customer Lifetime Value (CLV) Prediction Model is a predictive analytical model used to estimate the total revenue a customer is expected to generate for a 
-business during their entire relationship with the company.
-A Customer Lifetime Value (CLV) Prediction Model is a predictive analytics technique that estimates the future financial value of customers based on their historical purchasing behavior.
-Formula for calculate CLV:-
-CLV=Average Order Value×Purchase Frequency×Customer Lifespan
+## Pipeline
 
-Average Order Value = average money spent per order
-Purchase Frequency = Number of purchase per year
-Customer Lifespan = Duration of customer stays active
+```
+dataset/raw/ (Olist CSVs)
+        ↓  transform_olist.py
+dataset/{customers,products,orders}.csv
+        ↓  setup_local.py
+PostgreSQL star schema + analytics
+        ├─→ streamlit run app.py          (live dashboards)
+        └─→ powerbi/export_dataset.py     (Power BI Import CSVs + PBIP model)
+```
 
-## 🔹 Cohort Analysis
-Cohort analysis groups customers based on their first purchase month and tracks their behavior over time.
-A cohort is a group of customers who share a common event in a specific time period.
-Cohort analysis is to analyze customer retention behavior over time by grouping customers based on their first purchase month.
-This analysis helps identify patterns in repeat purchases and customer engagement.
-The analysis was performed using the ORDERS_FACT table from the UrbanCart database.
-The following tools were used for cohort analysis:
-1.Python – Data Analysis
-2.Pandas – Data Manipulation
-3.Matplotlib - Visualization
-4.Seaborn - Cohort heatmap visualization
-5.PostgreSQL - Data storage
+**Power BI is mandatory.** Open [`powerbi/UrbanCart_Olist.pbip`](powerbi/UrbanCart_Olist.pbip) in Power BI Desktop after export. Full steps: [`powerbi/README.md`](powerbi/README.md). Page layout: [`powerbi/pages_spec.md`](powerbi/pages_spec.md). The old `Urbancart_Dashboard.pbix` targets the previous synthetic schema — use the new Olist PBIP instead.
 
-## 🔹 Association Rules
-The goal of association rules is to discover relationships between products purchased in the same.
-Identify frequently purchased product combinations in the UrbanCart dataset. By applying association rule mining,
-we can discover relationships between products and recommend items that customers are likely to purchase together.
+Star: `dim_customers`, `dim_products`, `dim_date`, `orders_fact`.  
+Clock: `analysis_params.analysis_date = MAX(order_date)` so recency is not computed against today’s calendar.
 
+## Analytics
 
-## 📊 Power BI Dashboards
+**RFM.** Recency and monetary scored with `NTILE(5)`. Frequency is 1 / 3 / 5 because most Olist buyers order once (quintiles would collapse).
 
-## 🔹 Customer Analytics Executive Dashboard
+```
+R = analysis_date − last_order
+F = COUNT DISTINCT order_id
+M = Σ amount
+```
 
-![Executive Dashboard](images/Executive%20Dashboard.png)
+**CLV (historic).**
 
-The Executive Dashboard provides a high-level overview of business performance.
+```
+AOV              = Σ amount / COUNT orders
+lifespan_years   = MAX(lifespan_days, 1) / 365
+purchase_freq    = orders / lifespan_years
+CLV              = AOV × purchase_freq × lifespan_years
+```
 
-## Key Metrics:
-•	Monthly Recurring Revenue (MRR)
+Bands (BRL): Low < 150, Medium < 500, High ≥ 500.
 
-•	Customer Acquisition Cost (CAC)
+**Churn risk.** High if inactive > 180 days, Medium > 90, else Low. Rate = High / buyers.
 
-•	Customer Lifetime Value (CLV)
+**Cohorts.** `cohort_month = month of first order`. `retention(c,p) = active in period p / cohort size`. Replaces the old Marketing Attribution board (no ad spend in Olist).
 
-•	Retention Rate
+**Association.** Basket = `order_id`.
 
-•	Churn Percentage
+```
+Support(A,B)    = pair_orders / total_orders
+Confidence(A→B) = pair_orders / orders_with_A
+Lift(A,B)       = Support(A,B) / (Support(A) × Support(B))
+```
 
-## Insights:
-•	Helps stakeholders quickly assess overall business health
+## Dashboards
 
-•	Identifies trends in revenue and customer retention
+Hover the **i** under each number or chart for the formula.
 
+1. **Executive** — GMV, orders, buyers, AOV, avg CLV, churn rate; monthly revenue; orders vs buyers; state mix; CLV donut  
+2. **RFM** — segment headcount and GMV, R×F heatmap, monetary spread, summary table  
+3. **Churn** — risk mix, GMV in each band, inactivity histogram, risk by acquisition year, high-value high-risk list  
+4. **Cohorts** — repeat rate, retention heatmap, cohort size, revenue by months since first order  
+5. **Product** — category treemap, top SKUs, units vs revenue, share over time, category and product rules  
 
-## 🔹 Customer Segmentation Matrix (RFM Analysis) 
+## Run locally
 
-![RFM Analysis](images/RFM%20Analysis.png)
+```bash
+brew install postgresql@16 python@3.12
+brew services start postgresql@16
+createdb urbancart
 
-This dashboard segments customers based on Recency, Frequency, and Monetary value.
+cd urban-cart-customer-analytics-clv
+./run_local.sh
+```
 
-## Key Segments:
-•	Champions
+- Streamlit: http://localhost:8501  
+- Power BI: open `powerbi/UrbanCart_Olist.pbip` in Desktop (Windows), then Refresh
 
-•	Loyal Customers
+If `dataset/*.csv` are missing:
 
-•	At Risk Customers
+```bash
+# place Olist CSVs in dataset/raw/ then
+python transform_olist.py
+python setup_local.py
+python powerbi/export_dataset.py
+python powerbi/generate_semantic_model.py
+streamlit run app.py
+```
 
-•	Lost Customers
+## Author
 
-## Insights:
-•	Enables targeted marketing campaigns
-
-•	Helps improve customer retention strategies
-
-
-## 🔹 Churn Prediction Dashboard 
-
-![Churn Prediction Dashboard](images/Churn%20Prediction%20Dashboard.png)
-
-This dashboard focuses on identifying customers at risk of churn.
-
-## Key Features:
-•	Customer segmentation (High, Medium, Low Risk)
-
-•	Churn distribution visualization
-
-•	Detailed customer-level data
-
-## Insights:
-•	Helps identify high-risk customers
-
-•	Enables targeted retention strategies
-
-
-## 🔹 Marketing Attribution Dashboard 
-
-![Marketing Attribution Dashboard](images/Marketing%20Atrribution%20Dashboard.png)
-
-
-This dashboard analyse marketing performance across different channels.
-
-## Key Metrics:
-•	Total Revenue
-
-•	Marketing Spend
-
-•	Conversions
-
-•	Return on Investment (ROI)
-
-## Insights:
-•	Identifies most effective marketing channels
-
-•	Helps optimize marketing budget allocation
-
-
-## 🔹 Product Recommendation Dashboard 
-
-![Product Recommendation Dashboard](images/Product%20Reccomdation%20dashboard.png)
-
-This dashboard provides insights into product performance and customer preferences.
-
-## Key Features:
-•	Revenue by product category
-
-•	Customer segmentation by category
-
-•	Product-level performance metrics
-
-## Insights:
-•	Helps identify top-performing products
-
-•	Supports cross-selling and upselling strategies
-
-
-
-## 💡 Key Insights
-Top customers generate most revenue
-
-High churn after initial purchases
-
-Some marketing channels perform better than others
-
-Repeat customers drive higher profitability
-
-## 📈 Business Impact
-Improved customer targeting
-
-Better marketing budget allocation
-
-Increased customer retention
-
-Data-driven decision making
-
-## 📂 Project Structure
-UrbanCart/
-
-│── data/
-
-│── etl/
-
-│── sql/
-
-│── dashboards/
-
-│── notebooks/
-
-│── docs/
-
-## ▶️ How to Run
-Setup PostgreSQL database
-
-Load datasets
-
-Run ETL scripts (Python)
-
-Build data warehouse tables
-
-Connect Power BI to PostgreSQL
-
-Open dashboard
-
-
-## 👩‍💻 Author
-Kavya Rathod
-
-Aspiring Data Analyst
-
-
-## 🔗 Connect with Me
-GitHub: https://github.com/kavyarathod05
-
-
-## 🧾 Conclusion
-This project shows how data analytics can help improve customer retention, increase revenue, and support better business decisions in e-commerce.
-
-
+Kavya Rathod · [github.com/kavyarathod05](https://github.com/kavyarathod05)

@@ -1,0 +1,46 @@
+table clv_table
+	lineageTag: clv_table-table
+
+	column customer_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column avg_order_value
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: avg_order_value
+
+	column purchase_frequency
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: purchase_frequency
+
+	column lifespan_years
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: lifespan_years
+
+	column clv
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: clv
+
+	partition clv_table = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(#"Data Folder" & "/clv_table.csv"),
+					[Delimiter = ",", Columns = 5, Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				#"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				#"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {
+					{"customer_id", Text.Type},
+				{"avg_order_value", Number.Type},
+				{"purchase_frequency", Number.Type},
+				{"lifespan_years", Number.Type},
+				{"clv", Number.Type}
+				})
+			in
+				#"Changed Type"

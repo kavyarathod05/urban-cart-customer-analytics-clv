@@ -1,0 +1,27 @@
+relationship rel_orders_customers
+	fromColumn: orders_fact.customer_id
+	toColumn: dim_customers.customer_id
+
+relationship rel_orders_products
+	fromColumn: orders_fact.product_id
+	toColumn: dim_products.product_id
+
+relationship rel_orders_date
+	fromColumn: orders_fact.order_date
+	toColumn: dim_date.date_id
+
+relationship rel_rfm_customers
+	fromColumn: rfm_segmentation.customer_id
+	toColumn: dim_customers.customer_id
+
+relationship rel_clv_customers
+	fromColumn: clv_table.customer_id
+	toColumn: dim_customers.customer_id
+
+relationship rel_churn_customers
+	fromColumn: pbi_churn_risk.customer_id
+	toColumn: dim_customers.customer_id
+
+relationship rel_metrics_customers
+	fromColumn: customer_metrics.customer_id
+	toColumn: dim_customers.customer_id

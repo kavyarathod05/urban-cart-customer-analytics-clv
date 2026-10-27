@@ -1,0 +1,23 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures: false
+
+ref table Measures
+ref table analysis_params
+ref table category_pairs
+ref table clv_table
+ref table cohort_retention
+ref table customer_metrics
+ref table dim_customers
+ref table dim_date
+ref table dim_products
+ref table orders_fact
+ref table pbi_category_performance
+ref table pbi_churn_risk
+ref table pbi_clv_segmentation
+ref table pbi_customer_360
+ref table pbi_monthly_kpis
+ref table pbi_state_revenue
+ref table product_pairs
+ref table rfm_segmentation

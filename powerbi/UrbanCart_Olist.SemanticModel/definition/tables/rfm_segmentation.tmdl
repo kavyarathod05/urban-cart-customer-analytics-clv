@@ -1,0 +1,64 @@
+table rfm_segmentation
+	lineageTag: rfm_segmentation-table
+
+	column customer_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column recency
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: recency
+
+	column frequency
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: frequency
+
+	column monetary
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: monetary
+
+	column r_score
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: r_score
+
+	column f_score
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: f_score
+
+	column m_score
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: m_score
+
+	column customer_segment
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_segment
+
+	partition rfm_segmentation = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(#"Data Folder" & "/rfm_segmentation.csv"),
+					[Delimiter = ",", Columns = 8, Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				#"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				#"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {
+					{"customer_id", Text.Type},
+				{"recency", Int64.Type},
+				{"frequency", Int64.Type},
+				{"monetary", Number.Type},
+				{"r_score", Int64.Type},
+				{"f_score", Int64.Type},
+				{"m_score", Int64.Type},
+				{"customer_segment", Text.Type}
+				})
+			in
+				#"Changed Type"

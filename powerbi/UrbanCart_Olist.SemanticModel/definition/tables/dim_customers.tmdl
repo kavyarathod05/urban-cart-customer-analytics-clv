@@ -1,0 +1,40 @@
+table dim_customers
+	lineageTag: dim_customers-table
+
+	column customer_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column signup_date
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: signup_date
+
+	column city
+		dataType: string
+		summarizeBy: none
+		sourceColumn: city
+
+	column state
+		dataType: string
+		summarizeBy: none
+		sourceColumn: state
+
+	partition dim_customers = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(#"Data Folder" & "/dim_customers.csv"),
+					[Delimiter = ",", Columns = 4, Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				#"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				#"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {
+					{"customer_id", Text.Type},
+				{"signup_date", DateTime.Type},
+				{"city", Text.Type},
+				{"state", Text.Type}
+				})
+			in
+				#"Changed Type"

@@ -1,0 +1,52 @@
+table pbi_churn_risk
+	lineageTag: pbi_churn_risk-table
+
+	column customer_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column last_purchase_date
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: last_purchase_date
+
+	column total_spent
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: total_spent
+
+	column total_orders
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: total_orders
+
+	column days_inactive
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: days_inactive
+
+	column churn_segment
+		dataType: string
+		summarizeBy: none
+		sourceColumn: churn_segment
+
+	partition pbi_churn_risk = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(#"Data Folder" & "/pbi_churn_risk.csv"),
+					[Delimiter = ",", Columns = 6, Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				#"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				#"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {
+					{"customer_id", Text.Type},
+				{"last_purchase_date", DateTime.Type},
+				{"total_spent", Number.Type},
+				{"total_orders", Int64.Type},
+				{"days_inactive", Int64.Type},
+				{"churn_segment", Text.Type}
+				})
+			in
+				#"Changed Type"

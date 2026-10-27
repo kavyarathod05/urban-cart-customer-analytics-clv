@@ -1,0 +1,40 @@
+table pbi_state_revenue
+	lineageTag: pbi_state_revenue-table
+
+	column state
+		dataType: string
+		summarizeBy: none
+		sourceColumn: state
+
+	column revenue
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: revenue
+
+	column orders
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: orders
+
+	column customers
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: customers
+
+	partition pbi_state_revenue = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(#"Data Folder" & "/pbi_state_revenue.csv"),
+					[Delimiter = ",", Columns = 4, Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				#"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				#"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {
+					{"state", Text.Type},
+				{"revenue", Number.Type},
+				{"orders", Int64.Type},
+				{"customers", Int64.Type}
+				})
+			in
+				#"Changed Type"

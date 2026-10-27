@@ -1,61 +1,41 @@
-----Customer Churn Probability
+-- Churn from inactivity vs analysis_date (last order in the extract)
 SELECT
     customer_id,
     last_purchase_date,
-    
-    (CURRENT_DATE - last_purchase_date) AS days_inactive,
-    
+    days_inactive,
     CASE
-        WHEN (CURRENT_DATE - last_purchase_date) > 180
-            THEN 'High Churn Risk'
-        WHEN (CURRENT_DATE - last_purchase_date) > 90
-            THEN 'Medium Risk'
+        WHEN days_inactive > 180 THEN 'High Risk'
+        WHEN days_inactive > 90  THEN 'Medium Risk'
         ELSE 'Low Risk'
     END AS churn_segment
-
 FROM customer_360_view;
 
-
-----Most Profitable Customer Segment
+-- Value bands (BRL)
 SELECT
     CASE
-        WHEN total_spent > 50000 THEN 'High Value'
-        WHEN total_spent > 20000 THEN 'Medium Value'
+        WHEN total_spent >= 500 THEN 'High Value'
+        WHEN total_spent >= 150 THEN 'Medium Value'
         ELSE 'Low Value'
     END AS segment,
     COUNT(*) AS customers,
     SUM(total_spent) AS revenue
 FROM customer_360_view
-GROUP BY segment
+GROUP BY 1
 ORDER BY revenue DESC;
 
-
-----Cross selling Oppotunities
+-- Repeat rate
 SELECT
-    a.product_id AS product_1,
-    b.product_id AS product_2,
-    COUNT(*) AS frequency
-FROM orders a
-JOIN orders b
-    ON a.customer_id = b.customer_id
-    AND a.product_id <> b.product_id
-GROUP BY product_1, product_2
-ORDER BY frequency DESC;
+    COUNT(*) FILTER (WHERE total_orders >= 2)::numeric / COUNT(*) AS repeat_rate
+FROM customer_metrics;
 
-----Marketing ROI By Channel
----ROI=REVENUE/SPEND
+-- Cohort retention
+SELECT * FROM cohort_retention ORDER BY cohort_month, period_number;
+
+-- Revenue by payment type (Olist has no ad-spend channel)
 SELECT
-    m.channel,
-    SUM(o.amount) AS revenue,
-    SUM(m.spend) AS spend,
-    SUM(o.amount) / NULLIF(SUM(m.spend), 0) AS ROI
-FROM marketing_campaigns m
-JOIN orders o
-    ON CASE
-        WHEN o.channel = 'Web' THEN 'Google Ads'
-        WHEN o.channel = 'Mobile App' THEN 'Instagram'
-        WHEN o.channel = 'Store' THEN 'Email'
-    END = m.channel
-GROUP BY m.channel
-ORDER BY ROI DESC;
-    
+    payment_type,
+    SUM(amount) AS revenue,
+    COUNT(DISTINCT order_id) AS orders
+FROM orders_fact
+GROUP BY 1
+ORDER BY revenue DESC;

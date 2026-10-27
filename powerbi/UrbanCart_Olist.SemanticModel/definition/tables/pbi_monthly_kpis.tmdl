@@ -1,0 +1,46 @@
+table pbi_monthly_kpis
+	lineageTag: pbi_monthly_kpis-table
+
+	column month
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: month
+
+	column revenue
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: revenue
+
+	column orders
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: orders
+
+	column customers
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: customers
+
+	column aov
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: aov
+
+	partition pbi_monthly_kpis = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(#"Data Folder" & "/pbi_monthly_kpis.csv"),
+					[Delimiter = ",", Columns = 5, Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				#"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				#"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {
+					{"month", Int64.Type},
+				{"revenue", Number.Type},
+				{"orders", Int64.Type},
+				{"customers", Int64.Type},
+				{"aov", Number.Type}
+				})
+			in
+				#"Changed Type"

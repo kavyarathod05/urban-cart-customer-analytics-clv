@@ -1,0 +1,58 @@
+table Measures
+	lineageTag: Measures-table
+
+	measure 'Gross GMV' = SUM(orders_fact[amount])
+		formatString: #,0.00
+
+	measure Orders = DISTINCTCOUNT(orders_fact[order_id])
+		formatString: #,0
+
+	measure Buyers = DISTINCTCOUNT(orders_fact[customer_id])
+		formatString: #,0
+
+	measure AOV = DIVIDE([Gross GMV], [Orders])
+		formatString: #,0.00
+
+	measure 'Avg CLV' = AVERAGE(clv_table[clv])
+		formatString: #,0.00
+
+	measure 'Churn Rate' = ```
+		DIVIDE(
+		    CALCULATE(DISTINCTCOUNT(pbi_churn_risk[customer_id]), pbi_churn_risk[churn_segment] = "High Risk"),
+		    DISTINCTCOUNT(pbi_churn_risk[customer_id])
+		)
+		```
+		formatString: 0.0%
+
+	measure 'Repeat Rate' = ```
+		DIVIDE(
+		    CALCULATE(DISTINCTCOUNT(customer_metrics[customer_id]), customer_metrics[total_orders] >= 2),
+		    DISTINCTCOUNT(customer_metrics[customer_id])
+		)
+		```
+		formatString: 0.0%
+
+	measure 'Revenue At Risk' = ```
+		CALCULATE(SUM(pbi_churn_risk[total_spent]), pbi_churn_risk[churn_segment] = "High Risk")
+		```
+		formatString: #,0.00
+
+	column Dummy
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dummy
+
+	partition Measures = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(#"Data Folder" & "/Measures.csv"),
+					[Delimiter = ",", Columns = 1, Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				#"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				#"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {
+					{"Dummy", Text.Type}
+				})
+			in
+				#"Changed Type"

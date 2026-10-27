@@ -1,0 +1,58 @@
+table customer_metrics
+	lineageTag: customer_metrics-table
+
+	column customer_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column total_orders
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: total_orders
+
+	column total_revenue
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: total_revenue
+
+	column avg_order_value
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: avg_order_value
+
+	column first_purchase
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: first_purchase
+
+	column last_purchase
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: last_purchase
+
+	column lifespan_days
+		dataType: int64
+		summarizeBy: sum
+		sourceColumn: lifespan_days
+
+	partition customer_metrics = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(#"Data Folder" & "/customer_metrics.csv"),
+					[Delimiter = ",", Columns = 7, Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				#"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				#"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {
+					{"customer_id", Text.Type},
+				{"total_orders", Int64.Type},
+				{"total_revenue", Number.Type},
+				{"avg_order_value", Number.Type},
+				{"first_purchase", DateTime.Type},
+				{"last_purchase", DateTime.Type},
+				{"lifespan_days", Int64.Type}
+				})
+			in
+				#"Changed Type"
